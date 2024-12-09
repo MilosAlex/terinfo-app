@@ -6,6 +6,7 @@ import MapView, {
   Polygon,
   MapPressEvent,
   Region,
+  MarkerPressEvent,
 } from "react-native-maps";
 
 type MarkerType = {
@@ -13,9 +14,11 @@ type MarkerType = {
   longitude: number;
 };
 
+type PolygonType = MarkerType[];
+
 export default function HomeScreen(): JSX.Element {
   const [markers, setMarkers] = useState<MarkerType[]>([]);
-  const [polygonCoords, setPolygonCoords] = useState<MarkerType[] | null>(null);
+  const [polygons, setPolygons] = useState<PolygonType[]>([]);
   const [region, setRegion] = useState<Region>({
     latitude: 47.58350606209345,
     longitude: 19.171074960000084,
@@ -25,22 +28,24 @@ export default function HomeScreen(): JSX.Element {
 
   const handleMapPress = (event: MapPressEvent): void => {
     const { coordinate } = event.nativeEvent;
+
     setMarkers((currentMarkers) => [
       ...currentMarkers,
       { latitude: coordinate.latitude, longitude: coordinate.longitude },
     ]);
   };
 
-  console.log(markers);
-  
+  const handleMarkerPress = (event: MarkerPressEvent): void => {
+    event.stopPropagation();
 
-  const handleMarkerPress = (index: number): void => {
-    setPolygonCoords(markers.slice(0, index + 1));
+    const newPolygon = [...markers];
+    setPolygons((currentPolygons) => [...currentPolygons, newPolygon]);
+    setMarkers([]);
   };
 
   const handleClear = (): void => {
     setMarkers([]);
-    setPolygonCoords(null);
+    setPolygons([]);
   };
 
   const handleZoomIn = (): void => {
@@ -68,6 +73,7 @@ export default function HomeScreen(): JSX.Element {
         onPress={handleMapPress}
         key={markers.length}
       >
+        {/* Render markers */}
         {markers.map((marker, index) => (
           <Marker
             key={`marker-${index}`}
@@ -75,22 +81,25 @@ export default function HomeScreen(): JSX.Element {
               latitude: marker.latitude,
               longitude: marker.longitude,
             }}
-            onPress={() => handleMarkerPress(index)}
+            onPress={handleMarkerPress}
           />
         ))}
 
+        {/* Render the line for markers not yet part of a polygon */}
         {markers.length > 1 && (
           <Polyline coordinates={markers} strokeWidth={2} strokeColor="blue" />
         )}
 
-        {polygonCoords && (
+        {/* Render all polygons */}
+        {polygons.map((polygon, index) => (
           <Polygon
-            coordinates={polygonCoords}
+            key={`polygon-${index}`}
+            coordinates={polygon}
             fillColor="rgba(0, 150, 0, 0.5)"
             strokeColor="green"
             strokeWidth={2}
           />
-        )}
+        ))}
       </MapView>
       <View style={styles.buttonContainer}>
         <Button title="Clear" onPress={handleClear} />
